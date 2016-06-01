@@ -12,25 +12,14 @@ abstract class BasePlugin
 
     /**
      * BasePlugin constructor.
-     * Plugins will initialize once all plugins are loaded.
      */
     public function __construct()
     {
-        $this->init();
-        $this->addAction('plugins_loaded', [$this, 'register']);
+
     }
 
     /**
-     * Plugins can define init(), which will add action and filter hooks immediately.
-     * @return bool Success
-     */
-    public function init()
-    {
-        return true;
-    }
-
-    /**
-     * Plugins can define register(), which will be executed once all (other) plugins are loaded.
+     * Plugins can use register() to define action and filter hooks that should be loaded.
      * @return bool Success
      */
     public function register()
@@ -77,7 +66,8 @@ abstract class BasePlugin
      * @param int $accepted_args
      * @return true
      */
-    protected function addAction($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
+    protected function addAction($tag, $function_to_add, $priority = 10, $accepted_args = 1)
+    {
         return add_action($tag, $function_to_add, $priority, $accepted_args);
     }
 
@@ -89,7 +79,8 @@ abstract class BasePlugin
      * @param int $accepted_args
      * @return true
      */
-    protected function addFilter($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
+    protected function addFilter($tag, $function_to_add, $priority = 10, $accepted_args = 1)
+    {
         return add_filter($tag, $function_to_add, $priority, $accepted_args);
     }
 }
