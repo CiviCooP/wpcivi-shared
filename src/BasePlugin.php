@@ -45,14 +45,28 @@ abstract class BasePlugin
     }
 
     /**
+     * Get template part (= WP function get_template_part)
+     * @param string $slug Slug
+     * @param string $name Name
+     * @param array $args Arguments
+     */
+    public function getTemplatePart($slug, $name = null, $args = [])
+    {
+        extract($args);
+        get_template_part($slug, $name);
+    }
+
+    /**
      * Get template part (= WP function get_template_part), but return string instead of echoing the content
      * @param string $slug Slug
      * @param string $name Name
+     * @param array $args Arguments
      * @return string Template Part Content
      */
-    protected function getTemplatePartContent($slug, $name = null)
+    protected function getTemplatePartContent($slug, $name = null, $args = [])
     {
         ob_start();
+        extract($args);
         get_template_part($slug, $name);
         $content = ob_get_clean();
         return $content;

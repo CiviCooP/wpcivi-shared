@@ -1,11 +1,11 @@
 <?php
-namespace WPCivi\Shared;
+namespace WPCivi\Shared\API;
 
 /**
- * Class WPCiviException
+ * Class API\WPCiviException
  * @package WPCivi\Shared
  */
 class WPCiviException extends \Exception
 {
-
+    
 }

@@ -1,8 +1,8 @@
 <?php
-namespace WPCivi\Shared;
+namespace WPCivi\Shared\API;
 
 /**
- * Class WPCiviApi
+ * Class API\WPCiviApi
  * CiviCRM API Wrapper, intended to work both locally and remotely, as long as users use $this->api().
  * Roughly the Wordpress equivalent of https://github.com/SPnl/nl.sp.drupal-civiapi.
  * @package WPCivi\Shared

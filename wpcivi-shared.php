@@ -4,7 +4,7 @@
 Plugin Name: WPCivi Shared
 Plugin URI: https://github.com/civicoop/wpcivi-shared
 Description: Wordpress plugin with shared code for Wordpress + CiviCRM integration.
-Version: 1.0
+Version: 1.1
 Author: CiviCooP / Kevin Levie
 Author URI: https://levity.nl
 License: AGPL 3 or later
