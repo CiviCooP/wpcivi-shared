@@ -1,8 +1,8 @@
 <?php
-namespace WPCivi\Shared\API;
+namespace WPCivi\Shared\Civi;
 
 /**
- * Class API\WPCiviException
+ * Class Civi\WPCiviException
  * @package WPCivi\Shared
  */
 class WPCiviException extends \Exception

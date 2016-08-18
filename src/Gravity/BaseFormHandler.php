@@ -1,12 +1,11 @@
 <?php
 namespace WPCivi\Shared\Gravity;
-
 use WPCivi\Shared\BasePlugin;
 
 /**
  * Class Gravity\BaseFormHandler
  * Base handler for Gravity Form submissions. Most of the actual code is currently in
- * the form handlers themselves, possible further refactoring in the future.
+ * the form handlers themselves, we should refactor this further sometime.
  * @package WPCivi\Shared
  */
 class BaseFormHandler extends BasePlugin
@@ -77,7 +76,40 @@ class BaseFormHandler extends BasePlugin
     }
 
     /**
-     * Check if this handler class is enabled for this form
+     * Return a key / value array for a form entry, with the form field label as key,
+     * to make the data more accessibly - not sure if there's a better way...
+     * @param mixed $entry Form Entry
+     * @param mixed $form Form
+     * @return array Form Data Key/Value Array
+     */
+    protected function getDataKVArray(&$entry, &$form) {
+
+        $fields = [];
+        $data = [];
+        foreach ($form['fields'] as $field) {
+
+            $label = strtolower(preg_replace('/[^a-zA-z0-9]/', '', $field->label));
+            if (!$label) {
+                $label = $field->id;
+            }
+
+            $fields[$label] = $field->id;
+            $data[$label] = $entry[$field->id];
+
+            // For checkboxes, add an entry for each option value (18.1 -> maakuwkeuze.nieuwsbrief)
+            if (get_class($field) == 'GF_Field_Checkbox') {
+                foreach ($field->choices as $key => $choice) {
+                    $key_id = $field->inputs[$key]['id'];
+                    $data[$label . '.' . $choice['value']] = $entry[$key_id];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Check if this handler class is enabled for this form.
      * @param mixed $form Form
      * @return bool Is enabled?
      */
@@ -91,6 +123,10 @@ class BaseFormHandler extends BasePlugin
         return false;
     }
 
+    /**
+     * Get current class name.
+     * @return string Class Name
+     */
     protected function getName() {
         $class = new \ReflectionClass($this);
         return $class->getShortName();

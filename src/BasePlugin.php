@@ -3,8 +3,8 @@
 namespace WPCivi\Shared;
 
 /**
- * Class BasePlugin
- * Base plugin class with useful functionality that can be extended by other plugins/classes.
+ * Class BasePlugin.
+ * Base plugin class with useful (?) functionality that can be extended by other plugins/classes.
  * @package WPCivi\Shared
  */
 abstract class BasePlugin
