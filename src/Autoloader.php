@@ -41,8 +41,7 @@ class Autoloader
      */
     public function register()
     {
-        // ! WP heeft nu ook een autoloader die anders wordt vervangen, append door de laatste true?
-        spl_autoload_register([$this, 'loadClass'], true, true);
+        spl_autoload_register([$this, 'loadClass']);
     }
 
     /**

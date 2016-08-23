@@ -9,7 +9,7 @@ use WPCivi\Shared\Util\DatastoreTrait;
  * This structure is very provisional - these classes could use the API better, and the architecture for a long-term solution to integrate WP+CiviEntities should probably be very different.
  * @package WPCivi\Shared
  */
-class EntityCollection implements \ArrayAccess, \Iterator, \Traversable, \Countable
+class EntityCollection implements \ArrayAccess, \Iterator, \Countable
 {
 
     use DatastoreTrait;
@@ -35,28 +35,31 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Traversable, \Counta
     }
 
     /**
-     * @param string $entityType CiviCRM Entity Type
+     * Create a new collection of entity type $entity
+     * @param string $entity CiviCRM Entity Type
      * @return EntityCollection This class
      */
-    public static function create($entityType)
+    public static function create($entity)
     {
-        return new self($entityType);
+        return new self($entity);
     }
 
     /**
      * Create a new collection from a CiviCRM API request!
-     * @param string $entityType Entity Type
+     * @param string $entity Entity Type
      * @param string $action Action Method
-     * @param mixed[]  $params API Parameters
+     * @param mixed[] $params API Parameters
      * @return EntityCollection This collection
      */
-    public static function createFromApiCall($entityType, $action, $params)
+    public static function createApi($entity, $action, $params)
     {
         $wpcivi = WPCiviApi::getInstance();
-        $collection = new self($entityType);
+        $collection = new self($entity);
 
-        $results = $wpcivi->api($entityType, $action, $params);
-        if($results) {
+        $entity = ($entity == 'Cases' ? 'Case' : $entity); // Case<->Cases...
+        $results = $wpcivi->api($entity, $action, $params);
+
+        if($results && !empty($results->values)) {
             $collection->fill($results->values);
         }
 
@@ -65,20 +68,21 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Traversable, \Counta
 
     /**
      * Create a new collection from a CiviCRM API Get request!
-     * @param string $entity Action Method
-     * @param string $action Action Method
-     * @param array [mixed] $params API Parameters
+     * @param string $entity Entity Type
+     * @param mixed[] $params API Parameters
      * @return EntityCollection This collection
      */
-    public static function get($entity, $action, $params)
+    public static function get($entity, $params)
     {
-        $wpcivi = WPCiviApi::getInstance();
-        $collection = new self($entity);
+        $action = 'get';
+        if(!isset($params['options'])) {
+            $params['options'] = [];
+        }
+        if(!isset($params['options']['limit'])) {
+            $params['options']['limit'] = 0;
+        }
 
-        $results = $wpcivi->api($entity, $action, $params);
-        $collection->fill($results);
-
-        return $collection;
+        return self::createApi($entity, $action, $params);
     }
 
     /**
@@ -90,16 +94,26 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Traversable, \Counta
     public function fill($data = [], $parse = true)
     {
         if ($parse == true) {
-            $className = $this->entityType;
+            $className = "\\WPCivi\\Shared\\Entity\\" . $this->entityType;
             foreach ($data as $row) {
                 /** @var Entity $entity */
                 $entity = new $className();
                 $entity->setArray($row);
-                $this->data[] = $entity;
+                $key = (isset($row->id) ? $row->id : null);
+                $this->data[$key] = $entity;
             }
         } else {
             $this->data = array_merge($this->data, $data);
         }
+    }
+
+    /**
+     * Add or update collection: add a single entity
+     * @param Entity $entity Entity Object
+     */
+    public function add($entity = null) {
+        $key = (isset($entity->id) ? $entity->id : null);
+        $this->data[$key] = $entity;
     }
 
     /**

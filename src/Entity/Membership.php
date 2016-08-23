@@ -11,8 +11,8 @@ class Membership extends Entity
 {
 
     /**
-     * @var string Entity name
+     * @var string Entity Type
      */
-    protected $entityName = 'Membership';
+    protected $entityType = 'Membership';
 
 }

@@ -23,7 +23,7 @@ trait DatastoreTrait
 
     public function __set($key, $value)
     {
-        $this->data[$key] = $value;
+        $this->data->$key = $value;
     }
 
     public function __isset($key)

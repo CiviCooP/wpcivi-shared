@@ -36,6 +36,11 @@ class Entity implements \ArrayAccess
     protected $data = null;
 
     /**
+     * @var bool $customDataFetched Has custom data been fetched for this entity
+     */
+    protected $customDataFetched = false;
+
+    /**
      * @var string[] $fields Entity fields information, per action
      */
     protected $fields = [];
@@ -97,11 +102,40 @@ class Entity implements \ArrayAccess
      */
     public function loadBy($params = [])
     {
-        $this->data = $this->wpcivi->api($this->entityType, 'getsingle', [$params]);
-        if (!$this->data) {
-            throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! (" . print_r($params, true) . ")");
+        $this->data = $this->wpcivi->api($this->entityType, 'getsingle', $params);
+        if (!$this->data || $this->data->is_error) {
+            throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! (" . $this->data->error_msg . ")");
         }
         return $this->id;
+    }
+
+    /**
+     * Function to fetch custom data for a single entity using CustomValue.get and store it in the current entity object.
+     * Called by $this->getCustom() if a custom value key is not set yet.
+     */
+    public function fetchEntityCustomData()
+    {
+        if(!isset($this->id)) {
+            throw new WPCiviException("Could not fetch custom data for entity of type {$this->entityType}: id is not set.");
+        }
+
+        if($this->customDataFetched == true) {
+            return null;
+        }
+
+        $customData = $this->wpcivi->api('CustomValue', 'get', [
+            'entity_id' => $this->id,
+            'entity_table' => $this->entityTable(),
+        ]);
+
+        if(!empty($customData) && !empty($customData->values)) {
+            foreach($customData->values as $v) {
+                $key = 'custom_' . $v->id;
+                $this->$key = $v->latest;
+            }
+        }
+
+        $this->customDataFetched = true;
     }
 
     /**
@@ -125,19 +159,22 @@ class Entity implements \ArrayAccess
             throw new WPCiviException('Could not save entity: it currently doesn\'t contain data.');
         }
 
-        // Check if all field names are valid and omit get-only and internal fields
+        // Check if all field names are valid and omit get-only and internal fields - custom fields aren't checked for now
         $createData = [];
         $createFields = $this->getFields('create');
         foreach($this->data as $key => $value) {
-            if(array_key_exists($key, $createFields)) {
-                $createData[$key] = $value;
+            if(strpos($key, 'custom_') === 0 || array_key_exists($key, $createFields)) {
+                    $createData[$key] = $value;
             }
         }
 
         // Try to save data
-        $ret = $this->wpcivi->api($this->entityType, 'create', $this->data);
+        // print_r($createData);
+        $ret = $this->wpcivi->api($this->entityType, 'create', $createData);
+        // print_r($ret);
+
         if (!isset($ret) || $ret->is_error) {
-            throw new WPCiviException('Could not save ' . $this->entityType . ': ' . (int)$this->id . '.');
+            throw new WPCiviException('Could not save ' . $this->entityType . ': ' . (int)$this->id . '. (' . $ret->error_message . ')');
         }
 
         if (isset($ret->id) && empty($this->id)) {
@@ -148,6 +185,19 @@ class Entity implements \ArrayAccess
             $this->reload();
         }
         return true;
+    }
+
+    /**
+     * Get this entity's table name (provisional)
+     * @return string Table Name
+     */
+    private function entityTable()
+    {
+        if($this->entityType == 'Case') {
+            return 'civicrm_case';
+        } else {
+            return 'civicrm_' . strtolower($this->entityType);
+        }
     }
 
     /**
@@ -200,19 +250,32 @@ class Entity implements \ArrayAccess
             $fields = $this->wpcivi->api($this->entityType, 'getfields', []);
             $this->fields[$action] = [];
 
-            // Quickhack! -> get all CustomFields in this class and add their CustomField.name as well...
-            // There should be a better way to do this:
+            // Only set/get a subset of data for fields, and add custom field information where available
             foreach ($fields->values as $field) {
+                $newField = new \stdClass;
+                $newField->label = (isset($field->title) ? $field->title : $field->label);
+                $newField->name = $field->name;
+                $newField->description = $field->description;
+                $newField->is_custom = false;
+
                 if (strpos($field->name, 'custom_') === 0) {
                     $fieldId = str_ireplace('custom_', '', $field->name);
-                    $customField = $customDataCache->getFieldByIds($field->custom_group_id, $fieldId);
-                    $field->custom_field_name = $customField->name;
-                    // TODO add $field->custom_group_name = $customField->group_name;
 
-                    $this->fields[$action][$field->custom_field_name] = $field;
-                } else {
-                    $this->fields[$action][$field->name] = $field;
+                    $newField->is_custom = true;
+                    $newField->custom_field_id = $fieldId;
+                    $newField->custom_group_id = $field->custom_group_id;
+                    $newField->table_name = $field->table_name;
+                    $newField->column_name = $field->column_name;
+
+                    $customField = $customDataCache->getFieldByIds($field->custom_group_id, $fieldId);
+                    if(!empty($customField)) {
+                        $newField->custom_group_name = $customField->custom_group_name;
+                        $newField->api_field_name = $field->name;
+                        $newField->name = $customField->name;
+                    }
                 }
+
+                $this->fields[$action][$newField->name] = $newField;
             }
         }
 
@@ -240,14 +303,17 @@ class Entity implements \ArrayAccess
     }
 
     /**
-     * Get a custom field value by CustomFieldField name (eg: Lid_NVJ instead of custom_33)
+     * Get a custom field value by CustomField name (eg: Lid_NVJ instead of custom_33)
      * @param string $key Custom field name
      * @return mixed|null Field value, if found
      */
     public function getCustom($key) {
         $fields = $this->getFields('get');
         if(isset($fields[$key])) {
-            return $this->getValue($fields[$key]->name);
+            if(!isset($this->data->$key) && !$this->customDataFetched) {
+                $this->fetchEntityCustomData();
+            }
+            return $this->getValue($fields[$key]->api_field_name);
         }
         return null;
     }
@@ -265,8 +331,8 @@ class Entity implements \ArrayAccess
             throw new WPCiviException("No valid custom field defined for key '{$key}' in Entity.setCustom");
         }
 
-        $this->setValue($fields[$key]->name, $value); // Set for custom_33 key
-        $this->setValue($key, $value); // Also set for our custom key
+        $this->setValue($fields[$key]->api_field_name, $value); // Set for custom_33 key
+        // $this->setValue($key, $value); // Set value for our custom key
     }
 
     /**
@@ -287,11 +353,15 @@ class Entity implements \ArrayAccess
         if(!is_array($params) && !is_a($params, 'stdClass')) {
             throw new WPCiviException('Invalid $params for Entity::setArray - must be array or \stdClass');
         }
-
         if(is_object($params)) {
             $params = (array)$params;
         }
-        $this->data = array_merge($this->data, $params);
+        if(!isset($this->data)) {
+            $this->data = new \stdClass;
+        }
+        foreach($params as $k => $v) {
+            $this->data->$k = $v;
+        }
     }
 
     /**

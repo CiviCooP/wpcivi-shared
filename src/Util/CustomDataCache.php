@@ -80,11 +80,12 @@ class CustomDataCache
             throw new WPCiviException("Invalid key type '{$key}' in CustomDataCache::getGroup.'");
         }
 
-        // Fetch group and solemnly prepare the variables
+        // Fetch group and fill class variables
         $group = $this->wpcivi->api('CustomGroup', 'getsingle', [$key => $value]);
 
         $this->customGroupCache[$group->name] = $group;
         $this->customGroupCache[$group->name]->fields = [];
+        $this->customGroupCache[$group->name]->fieldMapping = [];
         $this->customGroupMapping[$group->id] = $group->name;
 
         // Fetch fields
@@ -94,6 +95,8 @@ class CustomDataCache
         ]);
         foreach ($fields->values as $field) {
             $this->customGroupCache[$group->name]->fields[$field->name] = $field;
+            $this->customGroupCache[$group->name]->fields[$field->name]->custom_group_name = $group->name;
+            $this->customGroupCache[$group->name]->fieldMapping[$field->id] = $field->name;
         }
 
         return $this->customGroupCache[$group->name];
@@ -158,11 +161,10 @@ class CustomDataCache
      */
     public function getFieldByIds($groupId, $fieldId) {
         $group = $this->getGroupById($groupId);
-        if(!empty($group)) {
-            foreach($group->fields as $field) {
-                if($field->id == $fieldId) {
-                    return $field;
-                }
+        if(!empty($group) && !empty($group->fieldMapping)) {
+            $fieldName = $group->fieldMapping[$fieldId];
+            if (!empty($fieldName)) {
+                return $group->fields[$fieldName];
             }
         }
         return false;
