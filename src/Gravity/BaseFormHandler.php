@@ -12,6 +12,11 @@ class BaseFormHandler extends BasePlugin
 {
 
     /**
+     * @var string $label Form handler label (defaults to class name)
+     */
+    protected $label;
+
+    /**
      * BaseFormHandler constructor.
      */
     public function __construct() {
@@ -33,6 +38,15 @@ class BaseFormHandler extends BasePlugin
         $this->registerThisHandler();
 
         // Register frontend actions/filters for Gravity Forms
+        if(method_exists($this, 'preRender')) {
+            $this->addFilter('gform_pre_render', [$this, 'preRender'], 10, 3);
+            $this->addFilter('gform_pre_validation', [$this, 'preRender'], 10, 3);
+            $this->addFilter('gform_pre_submission_filter', [$this, 'preRender'], 10, 3);
+            // $this->addFilter('gform_admin_pre_render', [$this, 'preRender'], 10, 3);
+        }
+        if(method_exists($this, 'getInputValue')) {
+            $this->addFilter('gform_get_input_value', [$this, 'getInputValue'], 10, 4);
+        }
         if(method_exists($this, 'saveFieldValue')) {
             $this->addFilter('gform_save_field_value', [$this, 'saveFieldValue'], 10, 4);
         }
@@ -70,7 +84,7 @@ class BaseFormHandler extends BasePlugin
     protected function registerThisHandler()
     {
         $this->addFilter('wpcivi_gravity_handlers', function($handlers) {
-            $handlers[] = $this->getName();
+            $handlers[$this->getName()] = $this->getLabel();
             return $handlers;
         }, 10, 1);
     }
@@ -113,7 +127,7 @@ class BaseFormHandler extends BasePlugin
      * @param mixed $form Form
      * @return bool Is enabled?
      */
-    protected function handlerIsEnabled($form)
+    public function handlerIsEnabled($form)
     {
         if (!empty($form['wpcivi_form_handler'])) {
             if($this->getName() == $form['wpcivi_form_handler']) {
@@ -130,6 +144,17 @@ class BaseFormHandler extends BasePlugin
     protected function getName() {
         $class = new \ReflectionClass($this);
         return $class->getShortName();
+    }
+
+    /**
+     * Get current class pretty name.
+     * @return string Class Label
+     */
+    protected function getLabel() {
+        if(!empty($this->label)) {
+            return $this->label;
+        }
+        return $this->getName();
     }
 
 }

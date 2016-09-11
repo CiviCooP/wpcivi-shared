@@ -20,6 +20,7 @@ class BackendFormHandler extends BaseFormHandler
     {
         $settings['CiviCRM Integration'] = [];
         $wpcivi_form_handler = rgar($form, 'wpcivi_form_handler');
+        $handlers = $this->getHandlers();
 
         $fhtml = "<tr>
                   <th><label for='wpcivi_form_handler'>WPCivi Custom Form Handler</label> " .
@@ -29,8 +30,8 @@ class BackendFormHandler extends BaseFormHandler
                   <option value=''>-none-</option>
                  ";
 
-        foreach ($this->getHandlers() as $handler) {
-            $fhtml .= "<option value='{$handler}'" . ($handler == $wpcivi_form_handler ? " selected" : "") . ">{$handler}</option>\n";
+        foreach ($handlers as $handler => $handler_label) {
+            $fhtml .= "<option value='{$handler}'" . ($handler == $wpcivi_form_handler ? " selected" : "") . ">{$handler_label}</option>\n";
         }
 
         $fhtml .= "</select>

@@ -18,11 +18,6 @@ class CustomConfigCache
     private static $instance;
 
     /**
-     * @var WPCiviApi $wpcivi
-     */
-    private $wpcivi;
-
-    /**
      * @var array $cache Custom Config Cache
      */
     private $cache = [];
@@ -41,14 +36,6 @@ class CustomConfigCache
     }
 
     /**
-     * CustomConfigCache constructor.
-     */
-    public function __construct()
-    {
-        $this->wpcivi = WPCiviApi::getInstance();
-    }
-
-    /**
      * Get default location type id.
      * @return int|null
      */
@@ -56,7 +43,7 @@ class CustomConfigCache
     {
         if(!isset($this->cache['location_type_default_id'])) {
             $ltParams = ['is_default' => 1, 'return' => 'id'];
-            $this->cache['location_type_default_id'] = $this->wpcivi->api('LocationType', 'getvalue', $ltParams);
+            $this->cache['location_type_default_id'] = WPCiviApi::call('LocationType', 'getvalue', $ltParams);
         }
         return $this->cache['location_type_default_id'];
     }

@@ -19,11 +19,6 @@ class CustomDataCache
     private static $instance;
 
     /**
-     * @var WPCiviApi $wpcivi
-     */
-    private $wpcivi;
-
-    /**
      * @var array $customGroupCache
      */
     private $customGroupCache = [];
@@ -44,14 +39,6 @@ class CustomDataCache
         }
 
         return self::$instance;
-    }
-
-    /**
-     * CustomDataCache constructor.
-     */
-    public function __construct()
-    {
-        $this->wpcivi = WPCiviApi::getInstance();
     }
 
     /**
@@ -81,7 +68,7 @@ class CustomDataCache
         }
 
         // Fetch group and fill class variables
-        $group = $this->wpcivi->api('CustomGroup', 'getsingle', [$key => $value]);
+        $group = WPCiviApi::call('CustomGroup', 'getsingle', [$key => $value]);
 
         $this->customGroupCache[$group->name] = $group;
         $this->customGroupCache[$group->name]->fields = [];
@@ -89,7 +76,7 @@ class CustomDataCache
         $this->customGroupMapping[$group->id] = $group->name;
 
         // Fetch fields
-        $fields = $this->wpcivi->api('CustomField', 'get', [
+        $fields = WPCiviApi::call('CustomField', 'get', [
             'custom_group_id' => $group->id,
             'options'         => ['limit' => 10000],
         ]);

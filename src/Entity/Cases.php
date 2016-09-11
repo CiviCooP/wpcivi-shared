@@ -54,8 +54,7 @@ class Cases extends Entity
     {
         if(!isset(self::$optionGroupCache[$field]))
         {
-            $wpcivi = WPCiviApi::getInstance();
-            $res = $wpcivi->api('Case', 'getoptions', ['field' => $field]);
+            $res = WPCiviApi::call('Case', 'getoptions', ['field' => $field]);
 
             self::$optionGroupCache[$field] = [];
             foreach($res->values as $status)
@@ -101,6 +100,14 @@ class Cases extends Entity
             return $activities;
         }
         return null;
+    }
+
+    /**
+     * Get case 'slug' (ie, a sanitized case subject)
+     * return string Slug
+     */
+    public function getSlug() {
+        return sanitize_title($this->subject);
     }
 
 }

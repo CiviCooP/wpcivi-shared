@@ -53,11 +53,10 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
      */
     public static function createApi($entity, $action, $params)
     {
-        $wpcivi = WPCiviApi::getInstance();
-        $collection = new self($entity);
+        $collection = new static($entity);
 
         $entity = ($entity == 'Cases' ? 'Case' : $entity); // Case<->Cases...
-        $results = $wpcivi->api($entity, $action, $params);
+        $results = WPCiviApi::call($entity, $action, $params);
 
         if($results && !empty($results->values)) {
             $collection->fill($results->values);
@@ -94,7 +93,7 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
     public function fill($data = [], $parse = true)
     {
         if ($parse == true) {
-            $className = "\\WPCivi\\Shared\\Entity\\" . $this->entityType;
+            $className = $this->getEntityClassName();
             foreach ($data as $row) {
                 /** @var Entity $entity */
                 $entity = new $className();
@@ -105,6 +104,11 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
         } else {
             $this->data = array_merge($this->data, $data);
         }
+    }
+
+    protected function getEntityClassName()
+    {
+        return __NAMESPACE__ . "\\Entity\\" . $this->entityType;
     }
 
     /**

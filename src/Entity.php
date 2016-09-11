@@ -26,14 +26,14 @@ class Entity implements \ArrayAccess
     protected $entityType;
 
     /**
-     * @var WPCiviApi $wpcivi WPCiviApi
-     */
-    protected $wpcivi;
-
-    /**
      * @var \stdClass $data Data Class
      */
     protected $data = null;
+
+    /**
+     * @var array $cache Internal static cache
+     */
+    protected static $cache = [];
 
     /**
      * @var bool $customDataFetched Has custom data been fetched for this entity
@@ -58,8 +58,6 @@ class Entity implements \ArrayAccess
      */
     public function __construct($id = null, $entityType = null)
     {
-        $this->wpcivi = WPCiviApi::getInstance();
-
         // Load entity data or load defaults if possible and $id is set
         if (isset($id)) {
             $this->load($id);
@@ -86,7 +84,7 @@ class Entity implements \ArrayAccess
      */
     public function load($id)
     {
-        $this->data = $this->wpcivi->api($this->entityType, 'getsingle', ['id' => $id]);
+        $this->data = WPCiviApi::call($this->entityType, 'getsingle', ['id' => $id]);
         if (!$this->data) {
             throw new WPCiviException("Could not load entity ID {$id} of type {$this->entityType}!");
         }
@@ -102,7 +100,7 @@ class Entity implements \ArrayAccess
      */
     public function loadBy($params = [])
     {
-        $this->data = $this->wpcivi->api($this->entityType, 'getsingle', $params);
+        $this->data = WPCiviApi::call($this->entityType, 'getsingle', $params);
         if (!$this->data || $this->data->is_error) {
             throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! (" . $this->data->error_msg . ")");
         }
@@ -123,7 +121,7 @@ class Entity implements \ArrayAccess
             return null;
         }
 
-        $customData = $this->wpcivi->api('CustomValue', 'get', [
+        $customData = WPCiviApi::call('CustomValue', 'get', [
             'entity_id' => $this->id,
             'entity_table' => $this->entityTable(),
         ]);
@@ -170,7 +168,7 @@ class Entity implements \ArrayAccess
 
         // Try to save data
         // print_r($createData);
-        $ret = $this->wpcivi->api($this->entityType, 'create', $createData);
+        $ret = WPCiviApi::call($this->entityType, 'create', $createData);
         // print_r($ret);
 
         if (!isset($ret) || $ret->is_error) {
@@ -247,7 +245,7 @@ class Entity implements \ArrayAccess
 
             $customDataCache = CustomDataCache::getInstance();
 
-            $fields = $this->wpcivi->api($this->entityType, 'getfields', []);
+            $fields = WPCiviApi::call($this->entityType, 'getfields', []);
             $this->fields[$action] = [];
 
             // Only set/get a subset of data for fields, and add custom field information where available
@@ -370,6 +368,24 @@ class Entity implements \ArrayAccess
     public function clear()
     {
         $this->data = [];
+    }
+
+    /**
+     * Get single local static cache variable/array.
+     * @param string $name Cache key
+     * @param mixed $refreshWith Optional array, object, callable, etc to refresh the cache with
+     * @return mixed Cached data
+     */
+    public static function getStaticCache($name, $refreshWith = null)
+    {
+        if(empty(static::$cache[$name])) {
+           if(is_callable($refreshWith)) {
+               static::$cache[$name] = call_user_func($refreshWith);
+           } else {
+               static::$cache[$name] = $refreshWith;
+           }
+        }
+        return static::$cache[$name];
     }
 
 }

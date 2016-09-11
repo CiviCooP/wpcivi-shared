@@ -1,10 +1,10 @@
 <?php
 
 /*
-Plugin Name: WPCivi Shared Code
+Plugin Name: WPCivi Shared
 Plugin URI: https://github.com/civicoop/wpcivi-shared
-Description: Shared code for WordPress + CiviCRM integration, such as the WPCiviApi class.
-Version: 1.1
+Description: Shared, reusable code for WordPress + CiviCRM integration.
+Version: 1.3.0
 Author: CiviCooP / Kevin Levie
 Author URI: https://levity.nl
 License: AGPL 3 or later
@@ -23,9 +23,10 @@ require_once __DIR__ . '/src/Autoloader.php';
 // Load and register autoloader
 $wpciviloader = \WPCivi\Shared\Autoloader::getInstance();
 $wpciviloader->register();
-
-// Add WPCivi\Shared namespace
 $wpciviloader->addNamespace('WPCivi\Shared', __DIR__ . '/src/');
 
-// Functies als dit zouden dan bijvoorbeeld iets moeten doen:
-// $wpcivi = \WPCivi\Shared\Civi\WPCiviApi::getInstance();
+// Register plugin (actions/filters are defined in the Plugin class)
+add_action('plugins_loaded', function() {
+    $plugin = new \WPCivi\Shared\Plugin;
+    $plugin->register();
+});

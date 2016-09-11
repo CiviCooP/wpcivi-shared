@@ -80,4 +80,16 @@ class WPCiviApi
         return $this->apiClass;
     }
 
+    /**
+     * Call the CiviCRM API class. Static version of $this->api.
+     * @param string $entity Entity
+     * @param string $action Action
+     * @param mixed $params Parameters
+     * @return \StdClass|array API result
+     */
+    public static function call($entity, $action, $params)
+    {
+        return static::getInstance()->api($entity, $action, $params);
+    }
+
 }
