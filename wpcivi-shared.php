@@ -23,10 +23,10 @@ require_once __DIR__ . '/src/Autoloader.php';
 // Load and register autoloader
 $wpciviloader = \WPCivi\Shared\Autoloader::getInstance();
 $wpciviloader->register();
-$wpciviloader->addNamespace('WPCivi\Shared', __DIR__ . '/src/');
+$wpciviloader->addNamespace('WPCivi\\Shared\\', __DIR__ . '/src/');
 
 // Register plugin (actions/filters are defined in the Plugin class)
 add_action('plugins_loaded', function() {
     $plugin = new \WPCivi\Shared\Plugin;
     $plugin->register();
-});
+}, 101);

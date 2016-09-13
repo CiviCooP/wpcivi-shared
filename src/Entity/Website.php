@@ -2,6 +2,7 @@
 namespace WPCivi\Shared\Entity;
 
 use WPCivi\Shared\Civi\WPCiviApi;
+use WPCivi\Shared\Civi\WPCiviException;
 use WPCivi\Shared\Entity;
 use WPCivi\Shared\EntityCollection;
 
@@ -38,9 +39,10 @@ class Website extends Entity
     /**
      * Get list of websites for a contact
      * @param int $contact_id Contact ID
+     * @param bool $full Whether to get a full Website object or just the URL as array value
      * @return EntityCollection Collection of Website entities
      */
-    public static function getWebsitesForContact($contact_id = null)
+    public static function getWebsitesForContact($contact_id = null, $full = false)
     {
         $types = static::getWebsiteTypes();
         $websites = WPCiviApi::call('Website', 'get', ['contact_id' => $contact_id]);
@@ -52,9 +54,38 @@ class Website extends Entity
         $ret = [];
         foreach ((array)$websites->values as $w) {
             $type = $types[$w->website_type_id];
-            $ret[$type] = $w->url;
+            if($full) {
+                $ret[$type] = $w;
+            } else {
+                $ret[$type] = $w->url;
+            }
         }
         return $ret;
+    }
+
+    /**
+     * Set websites for a contact. Adds if a website (type) does not exist, replaces if it does and has changed.
+     * @param int $contact_id Contact ID
+     * @param string[] $websites Array of websites, with website type as key and website URL as value
+     * @throws WPCiviException Thrown if an unexpected error occurs
+     * @return void
+     */
+    public static function setWebsitesForContact($contact_id = null, $websites = [])
+    {
+        $old_websites = self::getWebsitesForContact($contact_id);
+        foreach($websites as $type => $url)
+        {
+            if(array_key_exists($type, $old_websites)) {
+                $old_websites[$type]->url = $url;
+                $old_websites[$type]->save();
+            } else {
+                $site = new static;
+                $site->website_type_id = $type;
+                $site->url = $url;
+                $site->contact_id = $contact_id;
+                $site->save();
+            }
+        }
     }
 
 }

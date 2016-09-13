@@ -32,22 +32,22 @@ class WPCiviApi
     /**
      * Initialize CiviCRM API.
      * If this is a local installation, call civicrm_initialize(). Otherwise, initalize \civicrm_api3.
-     * @throws WPCiviException If CiviCRM could not be initialised.
+     * @return \WP_Error|bool Success or WP_Error
      */
     public function initialize()
     {
         if (function_exists('civicrm_initialize')) {
 
             if (!civicrm_initialize()) {
-                throw new WPCiviException("Could not initialize CiviCRM in WPCiviApi::initialize!");
+                return new \WP_Error('civiapi_error', 'Could not initialize CiviCRM in WPCiviApi::initialize!');
             }
 
-            require_once 'CiviCRM_API3.php';
+            require_once 'class.api.php';
             $this->apiClass = new \civicrm_api3;
 
         } else {
 
-            require_once 'CiviCRM_API3.php';
+            require_once 'class.api.php';
             $this->apiClass = new \civicrm_api3([
                 'server'  => get_option('civiapi_civicrm_server', 'https://localhost/'),
                 'path'    => get_option('civiapi_civicrm_path', '/wp-content/plugins/civicrm/civicrm/extern/rest.php'),

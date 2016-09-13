@@ -32,6 +32,5 @@ class Plugin extends BasePlugin
             register_widget(new ContactWidget);
         }); */
 
-
     }
 }
