@@ -45,7 +45,7 @@ class CiviWidgetWidget extends \WP_Widget
 //     */
 //    public static function show($args)
 //    {
-//        $widget = new self;
+//        $widget = new static;
 //        $widget->widget($args);
 //    }
 //

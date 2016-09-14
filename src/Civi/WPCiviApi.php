@@ -21,12 +21,12 @@ class WPCiviApi
      */
     public static function getInstance()
     {
-        if (empty(self::$instance)) {
-            self::$instance = new self;
-            self::$instance->initialize();
+        if (empty(static::$instance)) {
+            static::$instance = new static;
+            static::$instance->initialize();
         }
 
-        return self::$instance;
+        return static::$instance;
     }
 
     /**

@@ -40,21 +40,21 @@ class Website extends Entity
      * Get list of websites for a contact
      * @param int $contact_id Contact ID
      * @param bool $full Whether to get a full Website object or just the URL as array value
-     * @return EntityCollection Collection of Website entities
+     * @return EntityCollection|[] Collection of Website entities, or key/value array of websites
      */
     public static function getWebsitesForContact($contact_id = null, $full = false)
     {
         $types = static::getWebsiteTypes();
         $websites = WPCiviApi::call('Website', 'get', ['contact_id' => $contact_id]);
 
+        $ret = $full ? new EntityCollection('Website') : [];
         if ($websites->is_error) {
-            return [];
+            return $ret;
         }
 
-        $ret = [];
         foreach ((array)$websites->values as $w) {
             $type = $types[$w->website_type_id];
-            if($full) {
+            if ($full) {
                 $ret[$type] = $w;
             } else {
                 $ret[$type] = $w->url;
@@ -66,25 +66,35 @@ class Website extends Entity
     /**
      * Set websites for a contact. Adds if a website (type) does not exist, replaces if it does and has changed.
      * @param int $contact_id Contact ID
-     * @param string[] $websites Array of websites, with website type as key and website URL as value
+     * @param array $websites Array of websites, with website type as key and website URL as value
      * @throws WPCiviException Thrown if an unexpected error occurs
      * @return void
      */
     public static function setWebsitesForContact($contact_id = null, $websites = [])
     {
-        $old_websites = self::getWebsitesForContact($contact_id);
-        foreach($websites as $type => $url)
-        {
-            if(array_key_exists($type, $old_websites)) {
-                $old_websites[$type]->url = $url;
-                $old_websites[$type]->save();
+        $old_websites = static::getWebsitesForContact($contact_id, false);
+        foreach ($websites as $type => $url) {
+
+            if (array_key_exists($type, $old_websites)) {
+                if (is_object($old_websites[$type])) {
+                    $current_site = $old_websites[$type];
+                } else {
+                    $current_site = new Website;
+                    try {
+                        // Load existing website entity if not given
+                        $current_site->loadBy(['contact_id' => $contact_id, 'website_type_id' => $type, 'options' => ['limit' => 1]]);
+                    } catch (WPCiviException $e) {
+                        // We'll try to create a new one, then
+                    }
+                }
             } else {
-                $site = new static;
-                $site->website_type_id = $type;
-                $site->url = $url;
-                $site->contact_id = $contact_id;
-                $site->save();
+                $current_site = new Website;
             }
+
+            $current_site->website_type_id = $type;
+            $current_site->url = $url;
+            $current_site->contact_id = $contact_id;
+            $current_site->save();
         }
     }
 

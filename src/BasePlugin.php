@@ -45,7 +45,7 @@ abstract class BasePlugin
     }
 
     /**
-     * Get template part (= WP function get_template_part)
+     * Get template part (= WP function get_template_part).
      * @param string $slug Slug
      * @param string $name Name
      * @param array $args Arguments
@@ -57,7 +57,7 @@ abstract class BasePlugin
     }
 
     /**
-     * Get template part (= WP function get_template_part), but return string instead of echoing the content
+     * Get template part (= WP function get_template_part), but return string instead of echoing the content.
      * @param string $slug Slug
      * @param string $name Name
      * @param array $args Arguments
@@ -73,7 +73,7 @@ abstract class BasePlugin
     }
 
     /**
-     * Add Wordpress Action
+     * Add WordPress action.
      * @param string $tag
      * @param callable $function_to_add
      * @param int $priority
@@ -86,7 +86,7 @@ abstract class BasePlugin
     }
 
     /**
-     * Add Wordpress Filter
+     * Add WordPress filter.
      * @param string $tag
      * @param callable $function_to_add
      * @param int $priority
@@ -96,5 +96,20 @@ abstract class BasePlugin
     protected function addFilter($tag, $function_to_add, $priority = 10, $accepted_args = 1)
     {
         return add_filter($tag, $function_to_add, $priority, $accepted_args);
+    }
+
+    /**
+     * Quit WordPress as user-friendly as possible when a higher level exception occurs.
+     * @param \Exception $e
+     */
+    public static function exitOnException($e)
+    {
+        $debug = ((defined('WP_DEBUG') && WP_DEBUG) || (defined('CIVICRM_DEBUG') && CIVICRM_DEBUG));
+        wp_die(
+            "<h2>ERROR: ".$e->getMessage() . "</h2>" .
+            ($debug ? "\n\nIn {$e->getFile()} on line {$e->getLine()}.<br><br>\n" .
+                        "<small>" . nl2br($e->getTraceAsString()) . "</small></br>\n" : ""),
+            'An error occurred' . ($debug ? " (" . get_class($e) . ")" : "")
+        );
     }
 }

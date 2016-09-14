@@ -39,7 +39,7 @@ class Phone extends Entity
      */
     public static function createPhone($contactId, $phoneNumber, $phoneType = 'Mobile', $locationType = null) {
 
-        $phone = new self;
+        $phone = new static;
         $phone->contact_id = $contactId;
         $phone->phone_type_id = $phoneType;
         $phone->phone = $phoneNumber;

@@ -21,7 +21,7 @@ class Autoloader
     public static function getInstance()
     {
         if (!is_object(static::$instance)) {
-            static::$instance = new self;
+            static::$instance = new static;
         }
         return static::$instance;
     }

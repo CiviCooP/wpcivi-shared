@@ -52,18 +52,18 @@ class Cases extends Entity
      */
     public static function getCaseOptions($field)
     {
-        if(!isset(self::$optionGroupCache[$field]))
+        if(!isset(static::$optionGroupCache[$field]))
         {
             $res = WPCiviApi::call('Case', 'getoptions', ['field' => $field]);
 
-            self::$optionGroupCache[$field] = [];
+            static::$optionGroupCache[$field] = [];
             foreach($res->values as $status)
             {
-                self::$optionGroupCache[$field][$status->key] = $status->value;
+                static::$optionGroupCache[$field][$status->key] = $status->value;
             }
         }
 
-        return self::$optionGroupCache[$field];
+        return static::$optionGroupCache[$field];
     }
 
     /**
@@ -72,7 +72,7 @@ class Cases extends Entity
      */
     public function getCaseStatusName()
     {
-        $statuses = self::getCaseOptions('case_status_id');
+        $statuses = static::getCaseOptions('case_status_id');
         if(array_key_exists($this->status_id, $statuses)) {
             return $statuses[$this->status_id];
         }

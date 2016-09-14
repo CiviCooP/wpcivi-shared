@@ -41,7 +41,7 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
      */
     public static function create($entity)
     {
-        return new self($entity);
+        return new static($entity);
     }
 
     /**
@@ -81,7 +81,7 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
             $params['options']['limit'] = 0;
         }
 
-        return self::createApi($entity, $action, $params);
+        return static::createApi($entity, $action, $params);
     }
 
     /**

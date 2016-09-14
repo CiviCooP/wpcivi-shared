@@ -38,7 +38,7 @@ class Email extends Entity
      */
     public static function createEmail($contactId, $emailAddress, $locationType = null)
     {
-        $email = new self;
+        $email = new static;
         $email->contact_id = $contactId;
         $email->email = $emailAddress;
 

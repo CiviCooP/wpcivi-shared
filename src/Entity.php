@@ -85,7 +85,7 @@ class Entity implements \ArrayAccess
     public function load($id)
     {
         $this->data = WPCiviApi::call($this->entityType, 'getsingle', ['id' => $id]);
-        if (!$this->data) {
+        if (!$this->data || $this->data->is_error == true) {
             throw new WPCiviException("Could not load entity ID {$id} of type {$this->entityType}!");
         }
         return $this->id;
@@ -102,7 +102,9 @@ class Entity implements \ArrayAccess
     {
         $this->data = WPCiviApi::call($this->entityType, 'getsingle', $params);
         if (!$this->data || $this->data->is_error) {
-            throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! (" . $this->data->error_msg . ")");
+            $error_msg = (!empty($this->data->error_msg) ? $this->data->error_msg : 'Unknown error');
+            $this->clear();
+            throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! ({$error_msg})");
         }
         return $this->id;
     }
@@ -140,8 +142,8 @@ class Entity implements \ArrayAccess
      * Function to pass default values if a new entity is created.
      * See the individual entity classes for how this is used.
      */
-    protected function setDefaults()
-    {
+    protected function setDefaults() {
+        $this->data = new \stdClass;
     }
 
     /**
@@ -204,15 +206,15 @@ class Entity implements \ArrayAccess
      * we'll do an API request to save it and return the new entity class.
      * @param array $params Entity Parameters
      * @param bool $returnEntity Return entity after save?
-     * @return self Entity or API result
+     * @return static Entity or API result
      * @throws WPCiviException If an entity could not be added
      */
     public static function create($params = null, $returnEntity = true)
     {
         if (empty($params)) {
-            return new self;
+            return new static;
         } else {
-            $entity = new self;
+            $entity = new static;
             $entity->setArray($params);
 
             $ret = $entity->save();
@@ -278,6 +280,14 @@ class Entity implements \ArrayAccess
         }
 
         return $this->fields[$action];
+    }
+
+    /**
+     * @return int|null Entity ID
+     */
+    public function getId()
+    {
+        return $this->id;
     }
 
     /**

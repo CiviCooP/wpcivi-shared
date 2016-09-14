@@ -85,33 +85,100 @@ class Contact extends Entity
     }
 
     /**
-     * Load full address data into this Entity object: ie full street address, phone / mobile separately, ...
-     * @return void
+     * Get the primary Address entity for this contact using loadBy, or return an empty entity if no address is set
+     * @return Address Address Entity
      */
-    public function loadFullAddressData()
+    public function getAddress()
     {
-        $address = WPCiviApi::call('Address', 'get', ['contact_id' => $this->id, 'is_primary' => 1]);
-        if(!$address->is_error && $address->count > 0) {
-            $address = (array)$address->values;
-            $this->full_address = array_shift($address);
-            $this->street_name = $this->full_address->street_name;
-            $this->street_number = $this->full_address->street_number;
-            $this->street_unit = $this->full_address->street_unit;
+        if (!isset($this->address_entity) || !is_object($this->address_entity)) {
+            $this->address_entity = new Address;
+            try {
+                $this->address_entity->loadBy(['contact_id' => $this->id, 'is_primary' => 1, 'options' => ['limit' => 1]]);
+                if (!empty($this->address_entity->id)) {
+                    // Load existing
+                    $this->street_name = $this->address_entity->street_name;
+                    $this->street_number = $this->address_entity->street_number;
+                    $this->street_unit = $this->address_entity->street_unit;
+                } else {
+                    // Init new
+                    $this->address_entity->contact_id = $this->id;
+                    $this->address_entity->is_primary = 1;
+                    $this->address_entity->location_type_id = 'Work';
+                }
+            } catch (WPCiviException $e) {}
         }
+        return $this->address_entity;
+    }
 
-        $phone = WPCiviApi::call('Phone', 'get', [ 'contact_id' => $this->id, 'phone_type_id' => 'Phone']);
-        if(!$phone->is_error && $phone->count > 0) {
-            $phone = (array)$phone->values;
-            $this->full_phone = array_shift($phone);
-            $this->phone_phone = $this->full_phone->phone;
+    /**
+     * Get the first (Landline) Phone entity for this contact using loadBy, or return an empty entity if not set
+     * @return Phone Phone Entity
+     */
+    public function getPhone()
+    {
+        if (!isset($this->phone_entity) || !is_object($this->phone_entity)) {
+            $this->phone_entity = new Phone;
+            try {
+                $this->phone_entity->loadBy(['contact_id' => $this->id, 'phone_type_id' => 'Phone', 'options' => ['limit' => 1]]);
+                if (empty($this->phone_entity->id)) {
+                    throw new WPCiviException('Invalid existing record.');
+                }
+                $this->phone_no = $this->mobile_entity->phone;
+            } catch (WPCiviException $e) {
+                $this->phone_entity->contact_id = $this->id;
+                $this->phone_entity->phone_type_id = 'Phone';
+                $this->phone_entity->location_type_id = 'Work';
+            }
         }
+        return $this->phone_entity;
+    }
 
-        $mobile = WPCiviApi::call('Phone', 'get', [ 'contact_id' => $this->id, 'phone_type_id' => 'Mobile']);
-        if(!$mobile->is_error && $mobile->count > 0) {
-            $mobile = (array)$mobile->values;
-            $this->full_mobile = array_shift($mobile);
-            $this->phone_mobile = $this->full_mobile->phone;
+    /**
+     * Get the first Mobile Phone entity for this contact using loadBy, or return an empty entity if not set
+     * @return Phone Mobile Phone Entity
+     */
+    public function getMobile()
+    {
+        if (!isset($this->mobile_entity) || !is_object($this->mobile_entity)) {
+            $this->mobile_entity = new Phone;
+            try {
+                $this->mobile_entity->loadBy(['contact_id' => $this->id, 'phone_type_id' => 'Mobile',
+                                              'options' => ['limit' => 1]]);
+                if (empty($this->mobile_entity->id)) {
+                    throw new WPCiviException('Invalid existing record.');
+                }
+                $this->mobile_no = $this->mobile_entity->phone;
+            } catch (WPCiviException $e) {
+                $this->mobile_entity->contact_id = $this->id;
+                $this->mobile_entity->phone_type_id = 'Mobile';
+                $this->mobile_entity->location_type_id = 'Work';
+            }
         }
+        return $this->mobile_entity;
+    }
+
+    /**
+     * Get the primary Email entity for this contact using loadBy, or return an empty entity if not set
+     * @return Email Email Entity
+     */
+    public function getEmail()
+    {
+        if (!isset($this->email_entity) || !is_object($this->email_entity)) {
+            $this->email_entity = new Email;
+            try {
+                // Load existing
+                $this->email_entity->loadBy(['contact_id' => $this->id, 'is_primary' => 1, 'options' => ['limit' => 1]]);
+                if (empty($this->email_entity->id)) {
+                    throw new WPCiviException('Invalid existing record.');
+                }
+            } catch (WPCiviException $e) {
+                // Init new
+                $this->email_entity->contact_id = $this->id;
+                $this->email_entity->location_type_id = 'Work';
+                $this->email_entity->is_primary = 1;
+            }
+        }
+        return $this->email_entity;
     }
 
 }

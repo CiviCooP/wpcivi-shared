@@ -23,6 +23,9 @@ trait DatastoreTrait
 
     public function __set($key, $value)
     {
+        if(!is_object($this->data)) {
+            $this->data = new \stdClass;
+        }
         $this->data->$key = $value;
     }
 

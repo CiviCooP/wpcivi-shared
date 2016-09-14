@@ -20,14 +20,14 @@ class CiviWidgetCollection
 
     /**
      * Get class instance
-     * @return CiviWidgetCollection Instance
+     * @return static Instance
      */
     public static function getInstance()
     {
-        if (!is_object(self::$instance)) {
-            self::$instance = new self;
+        if (!is_object(static::$instance)) {
+            static::$instance = new static;
         }
-        return self::$instance;
+        return static::$instance;
     }
 
     /**

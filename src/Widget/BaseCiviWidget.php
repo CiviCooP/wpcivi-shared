@@ -76,7 +76,7 @@ class BaseCiviWidget extends BasePlugin
      */
     public static function call($params = [])
     {
-        $widget = new self;
+        $widget = new static;
         return $widget->render($params);
     }
 

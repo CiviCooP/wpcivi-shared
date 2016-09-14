@@ -20,13 +20,30 @@ Text Domain: wpcivi
 
 require_once __DIR__ . '/src/Autoloader.php';
 
-// Load and register autoloader
+/* --- LOAD AND REGISTER AUTOLOADER --- */
+
 $wpciviloader = \WPCivi\Shared\Autoloader::getInstance();
 $wpciviloader->register();
 $wpciviloader->addNamespace('WPCivi\\Shared\\', __DIR__ . '/src/');
 
-// Register plugin (actions/filters are defined in the Plugin class)
-add_action('plugins_loaded', function() {
-    $plugin = new \WPCivi\Shared\Plugin;
-    $plugin->register();
-}, 101);
+
+/* --- BACKEND GRAVITY FORM HANDLER --- */
+
+add_action('admin_init', function() {
+    new \WPCivi\Shared\Gravity\BackendFormHandler;
+    new \WPCivi\Shared\Gravity\BackendContactLink;
+}, 51);
+
+
+/* --- CUSTOM ACF FIELD TYPE --- */
+
+add_action('acf/include_field_types', function() {
+    new \WPCivi\Shared\Widget\CiviWidgetACFField;
+}, 51);
+
+/* --- WELLICHT: LATER: WIDGETS --- */
+
+/* add_action('widgets_init', function () {
+        register_widget(new ContactWidget);
+    });
+}, 51); */
