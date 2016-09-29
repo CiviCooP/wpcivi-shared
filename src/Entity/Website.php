@@ -74,6 +74,9 @@ class Website extends Entity
     {
         $old_websites = static::getWebsitesForContact($contact_id, false);
         foreach ($websites as $type => $url) {
+            if(!is_string($url) || empty($url)) {
+                continue;
+            }
 
             if (array_key_exists($type, $old_websites)) {
                 if (is_object($old_websites[$type])) {

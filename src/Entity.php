@@ -162,9 +162,13 @@ class Entity implements \ArrayAccess
         // Check if all field names are valid and omit get-only and internal fields - custom fields aren't checked for now
         $createData = [];
         $createFields = $this->getFields('create');
+
+        // QUICK HACK for Activity fields -> Activity.GetFields does not return fields specified in _spec() !?
+        $extraFields = ['source_contact_id','target_contact_id'];
+
         foreach($this->data as $key => $value) {
-            if(strpos($key, 'custom_') === 0 || array_key_exists($key, $createFields)) {
-                    $createData[$key] = $value;
+            if(strpos($key, 'custom_') === 0 || array_key_exists($key, $createFields) || in_array($key, $extraFields)) {
+                $createData[$key] = $value;
             }
         }
 
@@ -247,7 +251,7 @@ class Entity implements \ArrayAccess
 
             $customDataCache = CustomDataCache::getInstance();
 
-            $fields = WPCiviApi::call($this->entityType, 'getfields', []);
+            $fields = WPCiviApi::call($this->entityType, 'getfields', ['options' => ['limit' => 9999]]);
             $this->fields[$action] = [];
 
             // Only set/get a subset of data for fields, and add custom field information where available
@@ -388,12 +392,12 @@ class Entity implements \ArrayAccess
      */
     public static function getStaticCache($name, $refreshWith = null)
     {
-        if(empty(static::$cache[$name])) {
-           if(is_callable($refreshWith)) {
-               static::$cache[$name] = call_user_func($refreshWith);
-           } else {
-               static::$cache[$name] = $refreshWith;
-           }
+        if (empty(static::$cache[$name])) {
+            if (is_callable($refreshWith)) {
+                static::$cache[$name] = call_user_func($refreshWith);
+            } else {
+                static::$cache[$name] = $refreshWith;
+            }
         }
         return static::$cache[$name];
     }
