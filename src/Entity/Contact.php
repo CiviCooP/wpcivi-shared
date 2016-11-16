@@ -81,7 +81,10 @@ class Contact extends Entity
      */
     public function getSlug()
     {
-        return sanitize_title($this->display_name);
+        if(!isset($this->slug)) {
+            $this->slug = sanitize_title($this->display_name, $this->id);
+        }
+        return $this->slug;
     }
 
     /**

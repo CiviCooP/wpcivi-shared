@@ -53,7 +53,16 @@ class Website extends Entity
         }
 
         foreach ((array)$websites->values as $w) {
+
             $type = $types[$w->website_type_id];
+            if($type == '') {
+              $type = 'Work';
+            }
+
+            if($w->url == 'http://' || $w->url == 'https://') {
+                continue; // Skip empty urls
+            }
+
             if ($full) {
                 $ret[$type] = $w;
             } else {
