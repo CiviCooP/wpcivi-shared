@@ -89,7 +89,7 @@ class Cases extends Entity
     }
 
     /**
-     * Get case activities
+     * Get case activities (TODO - does not work, did it ever?)
      * @return mixed Case activities
      */
     public function getActivities()

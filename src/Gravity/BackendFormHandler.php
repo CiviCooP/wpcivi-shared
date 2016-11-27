@@ -41,11 +41,10 @@ class BackendFormHandler extends BaseFormHandler
         return $settings;
     }
 
-    /**
-     * Save custom options in the form admin.
-     * @param mixed $form Form
-     * @return mixed Settings
-     */
+  /**
+   * @param $form
+   * @return mixed
+   */
     public function formSettingsSubmit($form)
     {
         $form['wpcivi_form_handler'] = rgpost('wpcivi_form_handler');

@@ -20,6 +20,7 @@ Text Domain: wpcivi
 
 require_once __DIR__ . '/src/Autoloader.php';
 
+
 /* --- LOAD AND REGISTER AUTOLOADER --- */
 
 $wpciviloader = \WPCivi\Shared\Autoloader::getInstance();
@@ -31,8 +32,17 @@ $wpciviloader->addNamespace('WPCivi\\Shared\\', __DIR__ . '/src/');
 
 add_action('admin_init', function() {
     new \WPCivi\Shared\Gravity\BackendFormHandler;
-    new \WPCivi\Shared\Gravity\BackendContactLink;
+    new \WPCivi\Shared\Gravity\BackendEntityLink;
 }, 51);
+
+
+/* --- CUSTOM GRAVITY FIELD TYPES --- */
+
+add_action('gform_loaded', function () {
+    $ogselect = new \WPCivi\Shared\Gravity\Field\CiviOGSelect;
+    \GF_Fields::register($ogselect);
+    $ogselect->registerBackendHooks();
+}, 11);
 
 
 /* --- CUSTOM ACF FIELD TYPE --- */
@@ -40,6 +50,7 @@ add_action('admin_init', function() {
 add_action('acf/include_field_types', function() {
     new \WPCivi\Shared\Widget\CiviWidgetACFField;
 }, 51);
+
 
 /* --- WELLICHT: LATER: WIDGETS --- */
 

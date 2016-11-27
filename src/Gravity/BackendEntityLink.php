@@ -1,13 +1,15 @@
 <?php
 namespace WPCivi\Shared\Gravity;
 
+use WPCivi\Shared\Entity\Contact;
+
 /**
- * Class Gravity\BackendContactLink
- * Adds a link to a CiviCRM contact in the Gravity Forms backend for forms that handle a single CiviCRM contact.
- * Assumes 'wpcivi_status' and 'wpcivi_contactid' are added as metadata by a custom form handling class.
+ * Class Gravity\BackendEntityLink
+ * Adds a link to a CiviCRM entity in the Gravity Forms backend for forms that handle a single CiviCRM entity.
+ * Assumes the form handling class adds metadata values for 'wpcivi_status', 'wpcivi_entity' and 'wpcivi_entityid'.
  * @package WPCivi\Shared
  */
-class BackendContactLink extends BaseFormHandler
+class BackendEntityLink extends BaseFormHandler
 {
 
     /**
@@ -29,7 +31,12 @@ class BackendContactLink extends BaseFormHandler
      */
     public function entryMeta($entry_meta, $form_id)
     {
-        $entry_meta['wpcivi_contactid'] = [
+        $entry_meta['wpcivi_entity'] = [
+            'label'             => 'CiviCRM Entity',
+            'is_numeric'        => false,
+            'is_default_column' => false,
+        ];
+        $entry_meta['wpcivi_entityid'] = [
             'label'             => 'CiviCRM ID',
             'is_numeric'        => true,
             'is_default_column' => true,
@@ -39,7 +46,7 @@ class BackendContactLink extends BaseFormHandler
 
     /**
      * Implements hook gform_entries_column.
-     * Adds a link to the CiviCRM contact ID column (quick hack).
+     * Adds a link to the CiviCRM contact ID column.
      * @param int $form_id Form ID
      * @param int $field_id Field ID
      * @param mixed $value Field value
@@ -48,8 +55,8 @@ class BackendContactLink extends BaseFormHandler
      */
     public function entriesColumn($form_id, $field_id, $value, $entry, $query_string)
     {
-        if (!empty($entry['wpcivi_contactid']) && $entry['wpcivi_contactid'] == $value) {
-            echo '(<a href="/wp-admin/admin.php?page=CiviCRM&q=civicrm%2Fcontact%2Fview&reset=1&cid=' . $value . '">View Contact</a>)';
+        if (!empty($entry['wpcivi_entityid']) && $entry['wpcivi_entityid'] == $value) {
+            echo '(' . $this->getEntityLink($entry['wpcivi_entity'], $entry['wpcivi_entityid'], true) . ')';
         }
     }
 
@@ -64,7 +71,8 @@ class BackendContactLink extends BaseFormHandler
     public function entryDetail($form, $entry)
     {
         $status = gform_get_meta($entry['id'], 'wpcivi_status');
-        $contact_id = gform_get_meta($entry['id'], 'wpcivi_contactid');
+        $entityType = gform_get_meta($entry['id'], 'wpcivi_entity');
+        $entityId = gform_get_meta($entry['id'], 'wpcivi_entityid');
 
         if (!empty($status)) {
 
@@ -75,11 +83,37 @@ class BackendContactLink extends BaseFormHandler
                 echo "This entry could <strong>NOT</strong> be correctly stored in CiviCRM.<br>\n<em>{$status}</em><br>\n";
             }
 
-            if (!empty($contact_id)) {
-                echo "<a href='/wp-admin/admin.php?page=CiviCRM&q=civicrm%2Fcontact%2Fview&cid={$contact_id}&reset=1'><strong>View CiviCRM contact (id {$contact_id})</strong></a>\n";
-            }
+            echo $this->getEntityLink($entityType, $entityId, false);
             echo "</div></div>";
         }
+    }
+
+    /**
+     * Get the actual ≤a href="http://link">Link</a> for entriesColumn and entryDetail.
+     * @param string $entityType Entity Type
+     * @param int $entityId Entity Id
+     * @param bool $short Short output?
+     * @return string Link HTML
+     */
+    private function getEntityLink($entityType, $entityId, $short = true)
+    {
+        switch ($entityType) {
+            case 'Contact':
+                $link = "/wp-admin/admin.php?page=CiviCRM&q=civicrm%2Fcontact%2Fview&cid={$entityId}&reset=1";
+                break;
+            case 'Case':
+                $link = "/wp-admin/admin.php?page=CiviCRM&q=civicrm%2Fcontact%2Fview%2Fcase&action=view&selectedChild=case&id={$entityId}";
+                $cid = Contact::getCurrentWPUserContactId();
+                $link .= !empty($cid) ? "&cid=$cid" : "";
+                break;
+        }
+
+        if (empty($link)) {
+            return '';
+        }
+
+        $title = ($short ? "View {$entityType}" : "<strong>View CiviCRM {$entityType} (#{$entityId})</strong>");
+        return "<a href='{$link}'>{$title}</a>";
     }
 
 }

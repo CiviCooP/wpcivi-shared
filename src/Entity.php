@@ -232,7 +232,7 @@ class Entity implements \ArrayAccess
      */
     public function reload()
     {
-        if (!empty($this->data) || isset($this->id)) {
+        if (!empty($this->id)) {
             return $this->load($this->id);
         }
         return false;
@@ -315,6 +315,15 @@ class Entity implements \ArrayAccess
     }
 
     /**
+     * Clear a single property's value
+     * @param mixed $key Key
+     */
+    public function clearValue($key)
+    {
+        $this->__unset($key);
+    }
+
+    /**
      * Get a custom field value by CustomField name (eg: Lid_NVJ instead of custom_33)
      * @param string $key Custom field name
      * @return mixed|null Field value, if found
@@ -368,7 +377,7 @@ class Entity implements \ArrayAccess
         if(is_object($params)) {
             $params = (array)$params;
         }
-        if(!isset($this->data)) {
+        if(empty($this->data)) {
             $this->data = new \stdClass;
         }
         foreach($params as $k => $v) {

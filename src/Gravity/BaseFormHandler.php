@@ -6,6 +6,7 @@ use WPCivi\Shared\BasePlugin;
  * Class Gravity\BaseFormHandler
  * Base handler for Gravity Form submissions. Most of the actual code is currently in
  * the form handlers themselves, we should refactor this further sometime.
+ * Or perhaps rewrite all shared code / custom fields into a Gravity Add-on (see GFAddOn in the docs).
  * @package WPCivi\Shared
  */
 class BaseFormHandler extends BasePlugin

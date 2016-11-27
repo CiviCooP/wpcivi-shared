@@ -61,6 +61,26 @@ class Contact extends Entity
     }
 
     /**
+     * Get CiviCRM Contact ID by current WordPress User ID
+     * @return int|null Contact ID, or null if user not logged in / has no contact
+     */
+    public static function getCurrentWPUserContactId()
+    {
+        try {
+            $wpuser = wp_get_current_user();
+            if(!$wpuser->exists()) {
+                return null;
+            }
+            return WPCiviApi::call('UFMatch', 'getvalue', [
+                'uf_id' => $wpuser->ID,
+                'return' => 'contact_id',
+            ]);
+        } catch(\CiviCRM_API3_Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Get WordPress user for current contact (note that this currently means n+1 queries in a listing)
      * @return \WP_User|null WP User
      * @throws WPCiviException Thrown when no UFMatch record found
