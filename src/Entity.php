@@ -85,7 +85,7 @@ class Entity implements \ArrayAccess
     public function load($id)
     {
         $this->data = WPCiviApi::call($this->entityType, 'getsingle', ['id' => $id]);
-        if (!$this->data || $this->data->is_error == true) {
+        if (!$this->data || (isset($this->data->is_error) && $this->data->is_error == true)) {
             throw new WPCiviException("Could not load entity ID {$id} of type {$this->entityType}!");
         }
         return $this->id;
@@ -101,7 +101,7 @@ class Entity implements \ArrayAccess
     public function loadBy($params = [])
     {
         $this->data = WPCiviApi::call($this->entityType, 'getsingle', $params);
-        if (!$this->data || $this->data->is_error) {
+        if (!$this->data || (!empty($this->data->is_error) && $this->data->is_error == true)) {
             $error_msg = (!empty($this->data->error_msg) ? $this->data->error_msg : 'Unknown error');
             $this->clear();
             throw new WPCiviException("Could not load entity of type {$this->entityType} with custom params! ({$error_msg})");
@@ -150,10 +150,11 @@ class Entity implements \ArrayAccess
      * Function to save an entity (= create / update).
      * This will probably also be overloaded often for additional processing.
      * @param bool $reload Reload current class after creation/processing
+     * @param string $saveMethod API method to call on create (default: 'create')
      * @return bool Success
      * @throws WPCiviException If the entity can't be saved.
      */
-    public function save($reload = true)
+    public function save($reload = true, $saveMethod = 'create')
     {
         if (empty($this->data)) {
             throw new WPCiviException('Could not save entity: it currently doesn\'t contain data.');
@@ -163,8 +164,8 @@ class Entity implements \ArrayAccess
         $createData = [];
         $createFields = $this->getFields('create');
 
-        // QUICK HACK for Activity fields -> Activity.GetFields does not return fields specified in _spec() !?
-        $extraFields = ['source_contact_id','target_contact_id'];
+        // QUICK HACK for Activity fields -> TODO Activity.GetFields does not return fields specified in _spec() !?
+        $extraFields = ['source_contact_id','target_contact_id','case_id'];
 
         foreach($this->data as $key => $value) {
             if(strpos($key, 'custom_') === 0 || array_key_exists($key, $createFields) || in_array($key, $extraFields)) {
@@ -174,7 +175,7 @@ class Entity implements \ArrayAccess
 
         // Try to save data
         // print_r($createData);
-        $ret = WPCiviApi::call($this->entityType, 'create', $createData);
+        $ret = WPCiviApi::call($this->entityType, $saveMethod, $createData);
         // print_r($ret);
 
         if (!isset($ret) || $ret->is_error) {
@@ -210,10 +211,11 @@ class Entity implements \ArrayAccess
      * we'll do an API request to save it and return the new entity class.
      * @param array $params Entity Parameters
      * @param bool $returnEntity Return entity after save?
+     * @param string $saveMethod Save method to call on create (default: 'create')
      * @return static Entity or API result
      * @throws WPCiviException If an entity could not be added
      */
-    public static function create($params = null, $returnEntity = true)
+    public static function create($params = null, $returnEntity = true, $saveMethod = 'create')
     {
         if (empty($params)) {
             return new static;
@@ -221,7 +223,7 @@ class Entity implements \ArrayAccess
             $entity = new static;
             $entity->setArray($params);
 
-            $ret = $entity->save();
+            $ret = $entity->save(true, $saveMethod);
             return ($returnEntity == true ? $entity : $ret);
         }
     }
@@ -259,7 +261,7 @@ class Entity implements \ArrayAccess
                 $newField = new \stdClass;
                 $newField->label = (isset($field->title) ? $field->title : $field->label);
                 $newField->name = $field->name;
-                $newField->description = $field->description;
+                $newField->description = (isset($field->description) ? $field->description : null);
                 $newField->is_custom = false;
 
                 if (strpos($field->name, 'custom_') === 0) {
@@ -340,7 +342,7 @@ class Entity implements \ArrayAccess
     }
 
     /**
-     * Set a custom field value by CustomField name (eg: Lid_NVJ instead of custom_33)
+     * Set a custom field value by CustomField name (eg: Lid_NVJ instead of custom_33).
      * @param string $key Custom field name
      * @param string $value Custom field value
      * @return void
@@ -354,6 +356,25 @@ class Entity implements \ArrayAccess
 
         $this->setValue($fields[$key]->api_field_name, $value); // Set for custom_33 key
         // $this->setValue($key, $value); // Set value for our custom key
+    }
+
+    /**
+     * Set a single custom value by performing a direct API call.
+     * Workaround because the Case Create/Update API doesn't seem to allow submitting custom fields.
+     * TODO: Report / fix Case API!
+     * @param string $customFieldName Custom field internal name
+     * @param string $value Custom field value
+     * @return bool Success
+     * @throws WPCiviException Thrown if value cannot be set
+     */
+    public function setSingleCustomValue($customFieldName, $value) {
+        $fields = $this->getFields('create');
+        $apiResult = WPCiviApi::call($this->entityType, 'setvalue', ['field' => $fields[$customFieldName]->api_field_name, 'id' => $this->getId(), 'value' => $value]);
+        if(!empty($apiResult->is_error) && $apiResult->is_error == true) {
+            throw new WPCiviException('Could not save custom field value for entity type ' . $this->entityType . ': field name ' . $customFieldName . ', value ' . $value . '.');
+            return false;
+        }
+        return true;
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 namespace WPCivi\Shared\Gravity;
 use WPCivi\Shared\BasePlugin;
+use WPCivi\Shared\Civi\WPCiviException;
 
 /**
  * Class Gravity\BaseFormHandler
@@ -11,6 +12,12 @@ use WPCivi\Shared\BasePlugin;
  */
 class BaseFormHandler extends BasePlugin
 {
+
+    /**
+     * Constants for error statuses in form metadata
+     */
+    const WPCIVI_SUCCESS = 'SUCCESS';
+    const WPCIVI_ERROR = 'ERROR';
 
     /**
      * @var string $label Form handler label (defaults to class name)
@@ -51,6 +58,9 @@ class BaseFormHandler extends BasePlugin
         }
         if(method_exists($this, 'saveFieldValue')) {
             $this->addFilter('gform_save_field_value', [$this, 'saveFieldValue'], 10, 4);
+        }
+        if(method_exists($this, 'validation')) {
+            $this->addAction('gform_validation', [$this, 'validation'], 10, 1);
         }
         if(method_exists($this, 'afterSubmission')) {
             $this->addAction('gform_after_submission', [$this, 'afterSubmission'], 20, 2);
@@ -93,13 +103,17 @@ class BaseFormHandler extends BasePlugin
         $data = [];
         foreach ($form['fields'] as $field) {
 
-            $label = strtolower(preg_replace('/[^a-zA-z0-9]/', '', $field->label));
+            $label = $this->getBaseLabel($field->label);
             if (!$label) {
                 $label = $field->id;
             }
 
             $fields[$label] = $field->id;
-            $data[$label] = $entry[$field->id];
+            if(isset($entry[$field->id])) {
+                $data[$label] = $entry[$field->id];
+            } else {
+                $data[$label ] = "";
+            }
 
             // For checkboxes, add an entry for each option value (18.1 -> maakuwkeuze.nieuwsbrief)
             if (get_class($field) == 'GF_Field_Checkbox') {
@@ -111,6 +125,55 @@ class BaseFormHandler extends BasePlugin
         }
 
         return $data;
+    }
+
+    /**
+     * Filter name/label to a base name we use internally (e.g. 'Opdracht-ID' => 'opdrachtid')
+     * @param string $label Label
+     * @return string Base Name
+     */
+    protected function getBaseLabel($label)
+    {
+        return strtolower(preg_replace('/[^a-zA-z0-9]/', '', $label));
+    }
+
+    /**
+     * Save WordPress -> CiviCRM submission status to form metadata
+     * @param string $status Status (self::WPCIVI_SUCCESS|WPCIVI_ERROR)
+     * @param mixed $form Form Object
+     * @param mixed $entry Entry Object
+     * @param string|null $entityType Entity Type
+     * @param int|null $entityId Entity ID
+     * @param string|null $message Message
+     * @param \Exception|null $exception Exception thrown, if passed on
+     * @throws \Exception Thrown if status is WPCIVI_ERROR and WP_DEBUG is enabled
+     */
+    protected function setWPCiviStatus($status = self::WPCIVI_SUCCESS, &$form, &$entry, $entityType = null, $entityId = null, $message = null, $exception = null)
+    {
+        if($status == self::WPCIVI_SUCCESS) {
+            gform_update_meta($entry['id'], 'wpcivi_status', $status, $form['id']);
+        } else {
+            gform_update_meta($entry['id'], 'wpcivi_status', $status . (!empty($message) ? ' (' . $message . ')' : ''), $form['id']);
+        }
+
+        if (!empty($entityType)) {
+            gform_update_meta($entry['id'], 'wpcivi_entity', $entityType, $form['id']);
+        }
+        if (!empty($entityId)) {
+            gform_update_meta($entry['id'], 'wpcivi_entityid', $entityId, $form['id']);
+        }
+
+        // Exception handling: log - and exit in development
+        if($status == self::WPCIVI_ERROR) {
+            if(!$exception instanceof \Exception) {
+                $exception = new WPCiviException('Form submission error (' . $status . '): ' . $message . '.');
+            }
+            error_log("WPCivi: an error occurred! - " . $exception->getMessage() . ".");
+
+            if(WP_DEBUG === true) {
+                BasePlugin::exitOnException($exception);
+            }
+        }
     }
 
     /**

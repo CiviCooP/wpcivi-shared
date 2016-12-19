@@ -1,5 +1,5 @@
 <?php
-namespace WPCivi\Jourcoop\Widget;
+namespace WPCivi\Shared\Widget;
 
 /**
  * Class Widget\CiviWidgetWidget
