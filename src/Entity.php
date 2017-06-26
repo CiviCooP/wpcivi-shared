@@ -110,7 +110,8 @@ class Entity implements \ArrayAccess
     }
 
     /**
-     * Function to fetch custom data for a single entity using CustomValue.get and store it in the current entity object.
+     * Function to fetch custom data for a single entity using CustomValue.get
+     * and store it in the current entity object.
      * Called by $this->getCustom() if a custom value key is not set yet.
      */
     public function fetchEntityCustomData()
@@ -124,8 +125,9 @@ class Entity implements \ArrayAccess
         }
 
         $customData = WPCiviApi::call('CustomValue', 'get', [
-            'entity_id' => $this->id,
+            'entity_id'    => $this->id,
             'entity_table' => $this->entityTable(),
+            'options'      => ['limit' => 0],
         ]);
 
         if(!empty($customData) && !empty($customData->values)) {
@@ -198,11 +200,7 @@ class Entity implements \ArrayAccess
      */
     private function entityTable()
     {
-        if($this->entityType == 'Case') {
-            return 'civicrm_case';
-        } else {
-            return 'civicrm_' . strtolower($this->entityType);
-        }
+        return 'civicrm_' . strtolower($this->entityType);
     }
 
     /**
@@ -244,48 +242,13 @@ class Entity implements \ArrayAccess
      * Get an array of fields that this entity type can get/create/set.
      * Not that this doesn't include any custom data fields.
      * @param string $action API action ('get', 'create', ...')
-     * @param bool $reload Reload entity first?
-     * @return array Field Return with Field Entity
+     * @param bool $reload Reload data?
+     * @return array Array of fields
      */
     public function getFields($action = 'get', $reload = false)
     {
-        if(empty($this->fields[$action]) || $reload == true) {
-
-            $customDataCache = CustomDataCache::getInstance();
-
-            $fields = WPCiviApi::call($this->entityType, 'getfields', ['options' => ['limit' => 9999]]);
-            $this->fields[$action] = [];
-
-            // Only set/get a subset of data for fields, and add custom field information where available
-            foreach ($fields->values as $field) {
-                $newField = new \stdClass;
-                $newField->label = (isset($field->title) ? $field->title : $field->label);
-                $newField->name = $field->name;
-                $newField->description = (isset($field->description) ? $field->description : null);
-                $newField->is_custom = false;
-
-                if (strpos($field->name, 'custom_') === 0) {
-                    $fieldId = str_ireplace('custom_', '', $field->name);
-
-                    $newField->is_custom = true;
-                    $newField->custom_field_id = $fieldId;
-                    $newField->custom_group_id = $field->custom_group_id;
-                    $newField->table_name = $field->table_name;
-                    $newField->column_name = $field->column_name;
-
-                    $customField = $customDataCache->getFieldByIds($field->custom_group_id, $fieldId);
-                    if(!empty($customField)) {
-                        $newField->custom_group_name = $customField->custom_group_name;
-                        $newField->api_field_name = $field->name;
-                        $newField->name = $customField->name;
-                    }
-                }
-
-                $this->fields[$action][$newField->name] = $newField;
-            }
-        }
-
-        return $this->fields[$action];
+        $customDataCache = CustomDataCache::getInstance();
+        return $customDataCache->getEntityActionFields($this->entityType, $action, $reload);
     }
 
     /**
@@ -333,10 +296,11 @@ class Entity implements \ArrayAccess
     public function getCustom($key) {
         $fields = $this->getFields('get');
         if(isset($fields[$key])) {
-            if(!isset($this->data->$key) && !$this->customDataFetched) {
+            $apiFieldName = $fields[$key]->api_field_name;
+            if(!isset($this->data->$apiFieldName) && !$this->customDataFetched) {
                 $this->fetchEntityCustomData();
             }
-            return $this->getValue($fields[$key]->api_field_name);
+            return $this->getValue($apiFieldName);
         }
         return null;
     }

@@ -45,7 +45,10 @@ class Website extends Entity
     public static function getWebsitesForContact($contact_id = null, $full = false)
     {
         $types = static::getWebsiteTypes();
-        $websites = WPCiviApi::call('Website', 'get', ['contact_id' => $contact_id]);
+        $websites = WPCiviApi::call('Website', 'get', [
+            'contact_id' => $contact_id,
+            'options'    => ['limit' => 0],
+        ]);
 
         $ret = $full ? new EntityCollection('Website') : [];
         if ($websites->is_error) {
@@ -68,6 +71,45 @@ class Website extends Entity
             } else {
                 $ret[$type] = $w->url;
             }
+        }
+        return $ret;
+    }
+
+    /**
+     * Get list of websites for multiple contacts
+     * @param EntityCollection $contacts Contact ID
+     * @param bool $full Whether to get a full Website object or just the URL as array value
+     * @return EntityCollection[]|[] Collection of Website entities by contact, or an array of arrays
+     */
+    public static function getWebsitesForContacts(EntityCollection $contacts, $full = false)
+    {
+        $types = static::getWebsiteTypes();
+
+        $contact_ids = [];
+        foreach($contacts as $contact) {
+            $contact_ids[] = $contact->id;
+        }
+        $websites = WPCiviApi::call('Website', 'get', [
+            'contact_id' => ['IN' => $contact_ids],
+            'options'    => ['limit' => 0],
+        ]);
+
+        $ret = $full ? new EntityCollection('Website') : [];
+        if ($websites->is_error) {
+            return $ret;
+        }
+
+        foreach ((array)$websites->values as $w) {
+            if($w->url == 'http://' || $w->url == 'https://') {
+                continue; // Skip empty urls
+            }
+
+            if(empty($ret[$w->contact_id])) {
+                $ret[$w->contact_id] = [];
+            }
+
+            $type = !empty($types[$w->website_type_id]) ? $types[$w->website_type_id] : 'Work';
+            $ret[$w->contact_id][$type] = ($full ? $w : $w->url);
         }
         return $ret;
     }

@@ -2,6 +2,7 @@
 namespace WPCivi\Shared;
 
 use WPCivi\Shared\Civi\WPCiviApi;
+use WPCivi\Shared\Util\CustomDataCache;
 use WPCivi\Shared\Util\DatastoreTrait;
 
 /**
@@ -21,7 +22,7 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
     protected $entityType;
 
     /**
-     * @var array(mixed) $data Item data
+     * @var Entity[]|array $data Item data
      */
     private $data = [];
 
@@ -35,7 +36,25 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Create a new collection of entity type $entity
+     * Return entity class name.
+     * @return string
+     */
+    protected function getEntityClassName()
+    {
+        return __NAMESPACE__ . "\\Entity\\" . $this->entityType;
+    }
+
+    /**
+     * Get entity table name (provisional)
+     * @return string Table Name
+     */
+    private function entityTable()
+    {
+        return 'civicrm_' . strtolower($this->entityType);
+    }
+
+    /**
+     * Create a new collection of entity type $entity.
      * @param string $entity CiviCRM Entity Type
      * @return EntityCollection This class
      */
@@ -106,9 +125,48 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
         }
     }
 
-    protected function getEntityClassName()
+    /**
+     * Prefetch a number of custom fields for all entities in this entity collection,
+     * so we won't have to do n+1 queries in a loop to get them all.
+     * @param array $fieldNames
+     */
+    public function prefetchCustomData($fieldNames = [])
     {
-        return __NAMESPACE__ . "\\Entity\\" . $this->entityType;
+        if(count($this->data) == 0) {
+            return;
+        }
+
+        $fields = CustomDataCache::getInstance()->getEntityActionFields($this->entityType, 'get');
+        $returnFields = [];
+        foreach($fieldNames as $fName) {
+            if(isset($fields[$fName])) {
+                $returnFields[] = $fields[$fName]->api_field_name;
+            }
+        }
+
+        $entityIds = [];
+        foreach($this->data as $entity) {
+            $entityIds[] = $entity->id;
+        }
+
+        $result = WPCiviApi::call($this->entityType, 'Get', [
+            'id' => ['IN' => $entityIds],
+            'return' => implode(',', $returnFields),
+            'options' => ['limit' => 0],
+        ]);
+        if(empty($result) || $result->is_error) {
+            return;
+        }
+
+        foreach($result->values as $customRow) {
+           if(isset($this->data[$customRow->id])) {
+               foreach($customRow as $cFieldName => $cFieldValue) {
+                   if(in_array($cFieldName, $returnFields)) {
+                       $this->data[$customRow->id]->$cFieldName = $cFieldValue;
+                   }
+               }
+           }
+        }
     }
 
     /**

@@ -19,6 +19,11 @@ class CustomDataCache
     private static $instance;
 
     /**
+     * @var array $actionFieldsCache
+     */
+    private $actionFieldsCache = [];
+
+    /**
      * @var array $customGroupCache
      */
     private $customGroupCache = [];
@@ -170,6 +175,57 @@ class CustomDataCache
             return $field->id;
         }
         return false;
+    }
+
+    /**
+     * Get defined fields for a certain action for a certain entity type, with some extra properties.
+     * Used by entities to determine what fields can be requested or saved.
+     * @param string $entityType Entity Type
+     * @param string $action Action (e.g. 'get')
+     * @param bool $reload Always reload?
+     * @return array Fields
+     */
+    public function getEntityActionFields($entityType, $action, $reload = false)
+    {
+        if(empty($this->actionFieldsCache[$entityType])) {
+            $this->actionFieldsCache[$entityType] = [];
+        }
+
+        if(empty($this->actionFieldsCache[$entityType][$action]) || $reload == true) {
+
+            $fields = WPCiviApi::call($entityType, 'getfields', ['options' => ['limit' => 9999]]);
+            $this->actionFieldsCache[$entityType][$action] = [];
+
+            // Only set/get a subset of data for fields, and add custom field information where available
+            foreach ($fields->values as $field) {
+                $newField = new \stdClass;
+                $newField->label = (isset($field->title) ? $field->title : $field->label);
+                $newField->name = $field->name;
+                $newField->description = (isset($field->description) ? $field->description : null);
+                $newField->is_custom = false;
+
+                if (strpos($field->name, 'custom_') === 0) {
+                    $fieldId = str_ireplace('custom_', '', $field->name);
+
+                    $newField->is_custom = true;
+                    $newField->custom_field_id = $fieldId;
+                    $newField->custom_group_id = $field->custom_group_id;
+                    $newField->table_name = $field->table_name;
+                    $newField->column_name = $field->column_name;
+
+                    $customField = $this->getFieldByIds($field->custom_group_id, $fieldId);
+                    if(!empty($customField)) {
+                        $newField->custom_group_name = $customField->custom_group_name;
+                        $newField->api_field_name = $field->name;
+                        $newField->name = $customField->name;
+                    }
+                }
+
+                $this->actionFieldsCache[$entityType][$action][$newField->name] = $newField;
+            }
+        }
+
+        return $this->actionFieldsCache[$entityType][$action];
     }
 
 }

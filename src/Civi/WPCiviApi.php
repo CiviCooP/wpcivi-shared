@@ -15,6 +15,9 @@ class WPCiviApi
     /** @var \civicrm_api3 $apiClass CiviCRM API class */
     protected $apiClass;
 
+    /** @var int $counter */
+    private $counter = 0;
+
     /**
      * Get instance
      * @return WPCiviApi|bool Instance or false
@@ -67,6 +70,8 @@ class WPCiviApi
      */
     public function api($entity, $action, $params)
     {
+        // $this->counter++;
+        // error_log('WPCIVI API CALL (' . $this->counter . '): ' . $entity . '.' . $action . ': ' . print_r($params, true));
         $ret = $this->apiClass->{$entity}->{$action}($params);
         return $this->apiClass->result();
     }
