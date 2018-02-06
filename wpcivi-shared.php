@@ -39,9 +39,13 @@ add_action('admin_init', function() {
 /* --- CUSTOM GRAVITY FIELD TYPES --- */
 
 add_action('gform_loaded', function () {
-    $ogselect = new \WPCivi\Shared\Gravity\Field\CiviOGSelect;
-    \GF_Fields::register($ogselect);
-    $ogselect->registerBackendHooks();
+    $ogSelect = new \WPCivi\Shared\Gravity\Field\CiviOGSelect;
+    \GF_Fields::register($ogSelect);
+    $ogSelect->registerBackendHooks();
+
+    $countrySelect = new \WPCivi\Shared\Gravity\Field\CiviCountrySelect;
+    \GF_Fields::register($countrySelect);
+    $countrySelect->registerBackendHooks();
 }, 11);
 
 

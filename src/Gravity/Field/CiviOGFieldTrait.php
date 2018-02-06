@@ -132,7 +132,7 @@ trait CiviOGFieldTrait
     {
         ?>
         <script type="text/javascript">
-            fieldSettings['<?=$this->type;?>'] += ', .wpcivi_optiongroup_setting';
+            fieldSettings['<?=$this->type;?>'] += ', .<?=$this->ogField;?>_setting';
             jQuery(document).bind('gform_load_field_settings', function (event, field, form) {
                 jQuery('#<?=$this->ogField;?>').val(field.<?=$this->ogField;?>);
             });

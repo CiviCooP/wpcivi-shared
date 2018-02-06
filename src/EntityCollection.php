@@ -48,7 +48,7 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
      * Get entity table name (provisional)
      * @return string Table Name
      */
-    private function entityTable()
+    protected function entityTable()
     {
         return 'civicrm_' . strtolower($this->entityType);
     }
@@ -186,4 +186,12 @@ class EntityCollection implements \ArrayAccess, \Iterator, \Countable
         $this->data = [];
     }
 
+    /**
+     * Sort collection using a custom function
+     * @param \Closure $callback
+     */
+    public function usort(\Closure $callback)
+    {
+        usort($this->data, $callback);
+    }
 }

@@ -10,7 +10,7 @@ namespace WPCivi\Shared\Gravity\Field;
 class CiviOGSelect extends \GF_Field_Select
 {
     public $type = 'wpcivi-ogselect';
-    public $type_label = 'Select from CiviCRM OG';
+    public $type_label = 'CiviCRM OptionGroup Select';
     public $ogField = 'wpcivi_optiongroup';
 
     use CiviOGFieldTrait;
